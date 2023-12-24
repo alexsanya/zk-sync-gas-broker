@@ -6,7 +6,7 @@ interface IPoolInformation {
 }
 
 interface IPriceOracleClient {
-  function receivePrice(uint256 price) external;
+  function receivePrice(uint256 price, bytes calldata data) external;
 }
 
 contract PriceOracle {
@@ -19,9 +19,9 @@ contract PriceOracle {
     pool = _pool;
   }
 
-  function getPriceInEth(uint128 amount, bytes[] memory calldata) external {
+  function getPriceInEth(uint128 amount, bytes calldata data) external {
     uint256 price = IPoolInformation(poolInfo).calculateSwap(pool,amount,true,false,0);
-    IPriceOracleClient(msg.sender).receivePrice(price, calldata);
+    IPriceOracleClient(msg.sender).receivePrice(price, data);
   }
 }
 

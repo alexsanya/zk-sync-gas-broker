@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.17;
+pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "solmate/src/tokens/ERC20.sol";
 
+interface IPriceOracle {
+  function getPriceInEth(uint128 amount, bytes calldata data) external;
+}
+
 interface IERC2612 {
   function permit(address owner, address spender, uint value, uint deadline, uint8 v, bytes32 r, bytes32 s) external;
 }
 
-struct Asquisition {
+struct Reward {
   uint256 value;
   bytes32 permitHash; //keccak256 for permit signature
 }
@@ -23,8 +27,9 @@ contract GasBroker {
   string public constant version = "1";
 
   bytes32 public immutable DOMAIN_SEPARATOR;
+  IPriceOracle immutable priceOracle;
 
-  constructor(uint256 chainId) {
+  constructor(uint256 chainId, address _priceOracle) {
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
@@ -34,6 +39,7 @@ contract GasBroker {
         address(this)
       )
     );
+    priceOracle = IPriceOracle(_priceOracle);
   }
 
   function swap(
@@ -41,24 +47,26 @@ contract GasBroker {
     address token,
     uint256 value,
     uint256 deadline,
-    uint256 asquisition,
+    uint256 reward,
     uint8 permitV,
     bytes32 permitR,
     bytes32 permitS,
-    uint8 asqV,
-    bytes32 asqR,
-    bytes32 asqS) external payable {
+    uint8 rewardV,
+    bytes32 rewardR,
+    bytes32 rewardS) external payable {
+      require(value > reward, "Reward could not exceed value");
+
       bytes32 permitHash = keccak256(abi.encodePacked(permitR,permitS,permitV));
       require(
-        verifyAsquisition(
+        verifyReward(
           signer,
-          asquisition,
+          reward,
           permitHash,
-          asqV,
-          asqR,
-          asqS
+          rewardV,
+          rewardR,
+          rewardS
         ),
-        "Asquisition signature is invalid"
+        "Reward signature is invalid"
       );
       IERC2612(token).permit(
         signer,
@@ -70,32 +78,57 @@ contract GasBroker {
         permitS
       );
       SafeERC20.safeTransferFrom(IERC20(token), signer, address(this), value);
-      require(msg.value >= asquisition, "Not enough ETH provided");
-      payable(signer).sendValue(asquisition);
-      if (msg.value > asquisition) {
-        payable(msg.sender).sendValue(msg.value - asquisition);
+      bytes memory data = abi.encode(
+        signer,
+        msg.sender,
+        msg.value,
+        token,
+        value,
+        permitHash
+      );
+      priceOracle.getPriceInEth(uint128(value - reward), data);
+    }
+
+    function receivePrice(uint256 ethAmount, bytes calldata data) external {
+      require(msg.sender == address(priceOracle), "Only price oracle could call this method");
+      (
+        address signer,
+        address originalSender,
+        uint256 gasProvided,
+        address token,
+        uint256 value,
+        bytes32 permitHash
+      ) = abi.decode(
+          data,
+          (address,address,uint256,address,uint256,bytes32)
+      );
+
+      require(gasProvided >= ethAmount, "Not enough ETH provided");
+      payable(signer).sendValue(ethAmount);
+      if (gasProvided > ethAmount) {
+        payable(originalSender).sendValue(gasProvided - ethAmount);
       }
-      SafeERC20.safeTransfer(IERC20(token), msg.sender, value);
+      SafeERC20.safeTransfer(IERC20(token), originalSender, value);
       emit Swap(permitHash);
     }
 
-    function hashAsquisition(Asquisition memory asquisition) private view returns (bytes32) {
+    function hashReward(Reward memory reward) private view returns (bytes32) {
       return keccak256(
         abi.encodePacked(
           "\x19\x01",
           DOMAIN_SEPARATOR,
           keccak256(
             abi.encode(
-              keccak256("Asquisition(uint256 value,bytes32 permitHash)"),
-              asquisition.value,
-              asquisition.permitHash
+              keccak256("Reward(uint256 value,bytes32 permitHash)"),
+              reward.value,
+              reward.permitHash
             )
           )
         )
       );
     }
 
-    function verifyAsquisition(
+    function verifyReward(
       address signer,
       uint256 value,
       bytes32 permitHash,
@@ -103,7 +136,6 @@ contract GasBroker {
       bytes32 sigR,
       bytes32 sigS
     ) private view returns (bool) {
-      return signer == ecrecover(hashAsquisition(Asquisition(value, permitHash)), sigV, sigR, sigS);
+      return signer == ecrecover(hashReward(Reward(value, permitHash)), sigV, sigR, sigS);
     }
 }
-

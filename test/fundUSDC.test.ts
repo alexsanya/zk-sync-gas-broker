@@ -3,6 +3,7 @@ import { getWallet, getProvider, deployContract, LOCAL_RICH_WALLETS } from '../d
 import classicPoolFactoryAbi from '../abis/classicPoolFactoryAbi.json';
 import classicPoolAbi from '../abis/classicPool.json';
 import routerAbi from '../abis/router.json';
+import erc20abi from '../abis/erc20.json';
 
 const SYNC_SWAP_CLASSIC_POOL_FACTORY = "0xf2DAd89f2788a8CD54625C60b55cD3d2D0ACa7Cb";
 const WETH_ADDRESS = "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91";
@@ -40,7 +41,7 @@ describe('FundUSDCTest', function () {
     const [reserveETH, reserveUSDC] = WETH_ADDRESS < USDC_ADDRESS ? reserves : [reserves[1], reserves[0]];
 
     // The input amount of ETH
-    const value = 100000000;
+    const value = 10n**18n;
 
     console.log({ reserveETH, reserveUSDC })
 
@@ -68,6 +69,13 @@ describe('FundUSDCTest', function () {
         amountIn: value,
     }];
 
+
+    const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, getProvider());
+
+    const balanceBefore = await usdc.balanceOf(wallet.address);
+    console.log('USDC balance before: ', balanceBefore.toString());
+
+
     const router = new ethers.Contract(ROUTER_ADDRESS, routerAbi, getProvider());
 
     // Note: checks approval for ERC20 tokens.
@@ -82,6 +90,9 @@ describe('FundUSDCTest', function () {
     );
 
     await response.wait();
+
+    const balanceAfter = await usdc.balanceOf(wallet.address);
+    console.log('USDC balance after: ', balanceAfter.toString());
 
   });
 });

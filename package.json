@@ -24,7 +24,6 @@
     "@types/mocha": "^10.0.1",
     "chai": "^4.3.7",
     "dotenv": "^16.0.3",
-    "ethers": "^5.7.2",
     "hardhat": "^2.12.4",
     "mocha": "^10.2.0",
     "ts-node": "^10.9.1",
@@ -32,6 +31,8 @@
     "zksync-web3": "^0.14.3"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.5",
+    "@uniswap/v3-periphery": "^1.4.4",
     "solmate": "^6.2.0"
   }
 }

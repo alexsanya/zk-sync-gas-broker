@@ -1,4 +1,3 @@
-import { expect } from 'chai';
 import { getWallet, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
 
 describe('PriceOracleTest', function () {

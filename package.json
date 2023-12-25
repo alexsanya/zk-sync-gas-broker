@@ -13,6 +13,12 @@
     "test": "hardhat test --network hardhat"
   },
   "devDependencies": {
+    "@uniswap/sdk": "^3.0.3",
+    "@uniswap/sdk-core": "^4.0.2",
+    "@uniswap/smart-order-router": "^3.13.2-hotfix2",
+    "@uniswap/v3-core": "^1.0.1",
+    "@uniswap/v3-periphery": "^1.4.3",
+    "@uniswap/v3-sdk": "^3.9.0",
     "@matterlabs/hardhat-zksync-deploy": "^0.6.5",
     "@matterlabs/hardhat-zksync-node": "^0.0.1-beta.6",
     "@matterlabs/hardhat-zksync-solc": "^0.4.2",

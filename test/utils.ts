@@ -11,11 +11,9 @@ const USDC_ADDRESS = "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4";
 const ROUTER_ADDRESS = "0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+export const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, getProvider());
 
-describe('FundUSDCTest', function () {
-  it("Should fund wallet using SyncSwap", async function () {
-    const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
-    // The factory of the Classic Pool.
+export async function fundWithUSDC(wallet, value) {
     const classicPoolFactory = new ethers.Contract(
         SYNC_SWAP_CLASSIC_POOL_FACTORY,
         classicPoolFactoryAbi,
@@ -25,7 +23,6 @@ describe('FundUSDCTest', function () {
     // Gets the address of the ETH/DAI Classic Pool.
     // wETH is used internally by the pools.
     const poolAddress: string = await classicPoolFactory.getPool(WETH_ADDRESS, USDC_ADDRESS);   
-    console.log('Pool address: ', poolAddress)   // Checks whether the pool exists.
 
     // Checks whether the pool exists.
     if (poolAddress === ZERO_ADDRESS) {
@@ -41,9 +38,6 @@ describe('FundUSDCTest', function () {
     const [reserveETH, reserveUSDC] = WETH_ADDRESS < USDC_ADDRESS ? reserves : [reserves[1], reserves[0]];
 
     // The input amount of ETH
-    const value = 10n**18n;
-
-    console.log({ reserveETH, reserveUSDC })
 
     const withdrawMode = 1; // 1 or 2 to withdraw to user's wallet
 
@@ -69,13 +63,7 @@ describe('FundUSDCTest', function () {
         amountIn: value,
     }];
 
-
-    const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, getProvider());
-
-    console.log('Address: ', wallet.address);
     const balanceBefore = await usdc.balanceOf(wallet.address);
-    console.log('USDC balance before: ', balanceBefore.toString());
-
 
     const router = new ethers.Contract(ROUTER_ADDRESS, routerAbi, getProvider());
 
@@ -93,7 +81,5 @@ describe('FundUSDCTest', function () {
     await response.wait();
 
     const balanceAfter = await usdc.balanceOf(wallet.address);
-    console.log('USDC balance after: ', balanceAfter.toString());
 
-  });
-});
+}

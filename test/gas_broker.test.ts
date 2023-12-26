@@ -1,7 +1,8 @@
 import { getWallet, getProvider, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
-import { usdc, fundWithUSDC } from './utils';
+import { usdc, fundWithUSDC, getPermitTypedDataHash } from './utils';
 
 const PRICE_ORACLE_ADDRESS = "0xE6E839fec88eFc835F66139f0baC35a596D6d8eD";
+const USDC_ADDRESS = "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4";
 const USDC_VALUE = 100n * 10n**6n;
 const TTL = 3600;
 
@@ -39,8 +40,20 @@ describe('GasBrokerTest', function () {
       deadline: timestamp + TTL
     };
     console.log(message);
-    //signMessage(message);
 
+    const domain = {
+      name: await usdc.name(),
+      version: "1",
+      chainId: 324,
+      verifyingContract: USDC_ADDRESS
+    }
+
+
+    const digest = await getPermitTypedDataHash(message);
+    const permitSignature = await signer.signMessage(digest);
+
+    console.log('Digest: ', digest);
+    console.log('Permit signature: ', permitSignature);
 
     // lets change 100 USDC to ETH
   })

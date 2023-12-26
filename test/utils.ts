@@ -12,6 +12,39 @@ const ROUTER_ADDRESS = "0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, getProvider());
+const PERMIT_TYPEHASH = "0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9";
+
+
+
+function getStructHash(permitMessage) {
+  const { owner, spender, value, nonce, deadline } = permitMessage;
+  return ethers.utils.keccak256(
+    ethers.utils.solidityPack(
+        ["bytes32", "address", "address", "uint256", "uint256", "uint256"],
+        [
+          PERMIT_TYPEHASH,
+          owner,
+          spender,
+          value,
+          nonce,
+          deadline
+        ]
+    )
+  );
+
+}
+
+export async function getPermitTypedDataHash(permitMessage) {
+  const domainSeparator = await usdc.DOMAIN_SEPARATOR();
+  const structHash = getStructHash(permitMessage);
+  return ethers.utils.keccak256(
+    ethers.utils.concat([
+      ethers.utils.toUtf8Bytes('\x19\x01'),
+      ethers.utils.arrayify(domainSeparator),
+      ethers.utils.arrayify(structHash)
+    ])
+  );
+}
 
 export async function fundWithUSDC(wallet, value) {
     const classicPoolFactory = new ethers.Contract(

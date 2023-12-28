@@ -7,7 +7,7 @@ import "@matterlabs/hardhat-zksync-verify";
 import "@nomicfoundation/hardhat-ethers";
 
 const config: HardhatUserConfig = {
-  defaultNetwork: "inMemoryNode",
+  defaultNetwork: "zkSyncMainnet",
   networks: {
     zkSyncSepoliaTestnet: {
       url: "https://sepolia.era.zksync.dev",

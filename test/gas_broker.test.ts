@@ -1,5 +1,5 @@
 import { getWallet, getProvider, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
-import { usdc, fundWithUSDC, getPermitTypedDataHash } from './utils';
+import { usdc, fundWithUSDC, getPermitTypedDataHash, splitSignature, getDigestEtalon } from './utils';
 
 const PRICE_ORACLE_ADDRESS = "0xE6E839fec88eFc835F66139f0baC35a596D6d8eD";
 const USDC_ADDRESS = "0x3355df6D4c9C3035724Fd0e3914dE96A5a83aaf4";
@@ -48,12 +48,52 @@ describe('GasBrokerTest', function () {
       verifyingContract: USDC_ADDRESS
     }
 
+    const messageHashBytes = ethers.utils.arrayify("0xd12e658b4f72d593ac7e25f9ce92ad3df2a3239a7aa63a9214a403babf9d44bd");
+    console.log(messageHashBytes);
+    const flatSig = await signer.signMessage(messageHashBytes);
+    const sig = ethers.utils.splitSignature(flatSig);
+
+    console.log('Signature: ', sig);
+
+
 
     const digest = await getPermitTypedDataHash(message);
-    const permitSignature = await signer.signMessage(digest);
+    const digestEtalon = await getDigestEtalon({
+
+        owner: "0x5d2fcc71dFf7182bf49927a2ed3C8FcE0De87723",
+        spender: "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
+        value: 100000000n,
+        deadline: 1703639975n,
+        nonce: 0
+    });
+    const permitSignature = await signer.signMessage(digestEtalon);
 
     console.log('Digest: ', digest);
+    console.log('Digest etalon: ', digestEtalon);
     console.log('Permit signature: ', permitSignature);
+
+    const [permitV, permitR, permitS] = splitSignature(permitSignature);
+
+    console.log({
+      permitV,
+      permitR,
+      permitS
+    });
+
+      await usdc.connect(wallet).permit(
+        "0x5d2fcc71dFf7182bf49927a2ed3C8FcE0De87723",
+        "0x4B5DF730c2e6b28E17013A1485E5d9BC41Efe021",
+        100000000n,
+        1703639975n,
+        "0x1c",
+        "0x09bfaa3103d5bee140ca7062e8cd02e0560a4e35852b7ad3a45a54ff3b2aae79",
+        "0x1526153f1f1ca1008c9b70f4f283d3c8b36694db721f167f0c6c4162a05061a0"
+      );
+
+ //   await usdc.connect(wallet).permit(message.owner, message.spender, message.value, message.deadline, permitV, permitR, permitS);
+
+    const nonceAfter = await usdc.nonces(signer.address);
+    console.log('Nonce after: ', nonceAfter);
 
     // lets change 100 USDC to ETH
   })

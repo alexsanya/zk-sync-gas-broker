@@ -16,6 +16,31 @@ const PERMIT_TYPEHASH = "0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c6
 
 
 
+export async function getDigestEtalon(message) {
+  const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
+  const domainSeparator = await usdc.DOMAIN_SEPARATOR();
+  console.log('[getDigestEtalon] Domain separator:', domainSeparator);
+
+  //deploy permitSigUtils
+  const permitSigUtils = await deployContract(
+    "PermitSigUtils",
+    [domainSeparator],
+    { wallet, silent: true }
+  );
+
+  return await permitSigUtils.getTypedDataHash(message);
+
+}
+
+export function splitSignature(signatureHex: string) {
+  const rawSig = signatureHex.split('x')[1]
+  return [
+    `0x${rawSig.slice(-2)}`,
+    `0x${rawSig.slice(0,64)}`, 
+    `0x${rawSig.slice(64,-2)}`
+  ]
+}
+
 function getStructHash(permitMessage) {
   const { owner, spender, value, nonce, deadline } = permitMessage;
   return ethers.utils.keccak256(

@@ -4,6 +4,8 @@ import classicPoolFactoryAbi from '../abis/classicPoolFactoryAbi.json';
 import classicPoolAbi from '../abis/classicPool.json';
 import routerAbi from '../abis/router.json';
 import erc20abi from '../abis/erc20.json';
+import rewardTypes from '../assets/rewardTypes.json';
+import permitTypes from '../assets/permitTypes.json';
 
 const SYNC_SWAP_CLASSIC_POOL_FACTORY = "0xf2DAd89f2788a8CD54625C60b55cD3d2D0ACa7Cb";
 const WETH_ADDRESS = "0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91";
@@ -12,11 +14,41 @@ export const USDT_ADDRESS = "0x493257fD37EDB34451f62EDf8D2a0C418852bA4C";
 const ROUTER_ADDRESS = "0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-export const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, getProvider());
-export const usdt = new ethers.Contract(USDT_ADDRESS, erc20abi, getProvider());
+const provider = getProvider();
+
+export const usdc = new ethers.Contract(USDC_ADDRESS, erc20abi, provider);
+export const usdt = new ethers.Contract(USDT_ADDRESS, erc20abi, provider);
 const PERMIT_TYPEHASH = "0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9";
 
 
+export const getReward = async gasBroker => {
+  const { chainId } = await provider.getNetwork();
+
+  return {
+    types: rewardTypes,
+    domain: {
+      name: await gasBroker.name(),
+      version: await gasBroker.version(),
+      chainId: chainId,
+      verifyingContract: gasBroker.address
+    }
+  }
+}
+
+
+export const getPermit = async () => {
+  const { chainId } = await provider.getNetwork();
+
+  return {
+    types: permitTypes,
+    domain: {
+      name: await usdt.name(),
+      version: "1",
+      chainId: chainId,
+      verifyingContract: usdt.address
+    }
+  }
+}
 
 export async function getDigestEtalon(message) {
   const wallet = getWallet(LOCAL_RICH_WALLETS[0].privateKey);
@@ -34,15 +66,6 @@ export async function getDigestEtalon(message) {
 
   return await permitSigUtils.getTypedDataHash(message);
 
-}
-
-export function splitSignature(signatureHex: string) {
-  const rawSig = signatureHex.split('x')[1]
-  return [
-    `0x${rawSig.slice(-2)}`,
-    `0x${rawSig.slice(0,64)}`, 
-    `0x${rawSig.slice(64,-2)}`
-  ]
 }
 
 function getStructHash(permitMessage) {

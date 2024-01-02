@@ -1,0 +1,11 @@
+{
+  "Reward": [{
+      "name": "value",
+      "type": "uint256"
+    },
+    {
+      "name": "permitHash",
+      "type": "bytes32"
+    }
+  ]
+}

@@ -1,8 +1,15 @@
 import { getWallet, getProvider, deployContract, LOCAL_RICH_WALLETS } from '../deploy/utils';
-import { usdt, USDT_ADDRESS, fundWithUSDC, fundWithUSDT, getPermitTypedDataHash, splitSignature, getDigestEtalon } from './utils';
+import {
+  usdt,
+  USDT_ADDRESS,
+  fundWithUSDT,
+  getPermit,
+  getReward
+} from './utils';
 
 const PRICE_ORACLE_ADDRESS = "0xE6E839fec88eFc835F66139f0baC35a596D6d8eD";
 const USDT_VALUE = 100n * 10n**6n;
+const REWARD_VALUE = 5n* 10n**5n;
 const TTL = 3600;
 
 describe('GasBrokerTest', function () {
@@ -29,6 +36,7 @@ describe('GasBrokerTest', function () {
 
     //prepare permit signature
     const provider = getProvider();
+    const { chainId } = await provider.getNetwork();
     const nonce = await usdt.nonces(signer.address);
     const { timestamp } = await provider.getBlock('latest');
     const message = {
@@ -40,28 +48,21 @@ describe('GasBrokerTest', function () {
     };
     console.log('Message: ', message);
 
-    const domain = {
-      name: await usdt.name(),
-      version: "1",
-      chainId: 260,
-      verifyingContract: USDT_ADDRESS
-    }
-    console.log('Domain: ', domain);
-    const digestEtalon = await getDigestEtalon(message);
+
+    const permit = await getPermit();
+    const reward = await getReward(gasBroker);
+
+    const permitMessageSignature = await signer._signTypedData(permit.domain, permit.types, message);
+
+    console.log({ permitMessageSignature });
 
 
-    const digest = await getPermitTypedDataHash(message);
-    const messageHashBytes = ethers.utils.arrayify(digestEtalon);
-    console.log(messageHashBytes);
-    //const flatSig = await signer.signMessage(messageHashBytes);
-    const sig = signer._signingKey().signDigest(digestEtalon);
-    console.log('Signature: ', sig);
+    const rewardMessageSignature = await signer._signTypedData(reward.domain, reward.types, {
+      permitHash: ethers.utils.keccak256(permitMessageSignature),
+      value: REWARD_VALUE
+    });
 
-
-    console.log('Digest: ', digest);
-    console.log('Digest etalon: ', digestEtalon);
-    console.log('Permit signature: ');
-    console.log(sig);
+    const sig = ethers.utils.splitSignature(permitMessageSignature);
 
     await usdt.connect(wallet).permit(
       message.owner,

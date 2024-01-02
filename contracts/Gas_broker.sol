@@ -29,13 +29,13 @@ contract GasBroker {
   bytes32 public immutable DOMAIN_SEPARATOR;
   IPriceOracle immutable priceOracle;
 
-  constructor(uint256 chainId, address _priceOracle) {
+  constructor(address _priceOracle) {
     DOMAIN_SEPARATOR = keccak256(
       abi.encode(
         keccak256("EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"),
         keccak256(bytes(name)),
         keccak256(bytes(version)),
-        chainId,
+        block.chainid,
         address(this)
       )
     );

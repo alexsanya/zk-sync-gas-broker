@@ -22,14 +22,16 @@ describe('GasBrokerTest', function () {
     const usdtValue = await usdt.balanceOf(wallet.address);
     await usdt.connect(wallet).transfer(signer.address, usdtValue);
     console.log('Signer`s address is: ', signer.address);
-    console.log('Signer`s ETH balance is: ', (await signer.getBalance()).toString());
-    console.log('Signer`s USDT balance is ', (await usdt.balanceOf(signer.address)).toString());
+    const ethBalanceBefore = await signer.getBalance();
+    const usdtBalanceBefore = await usdt.balanceOf(signer.address);
+    console.log('Signer`s ETH balance is: ', ethBalanceBefore.toString());
+    console.log('Signer`s USDT balance is ', usdtBalanceBefore.toString());
 
 
     //deploy gas broker
     const gasBroker = await deployContract(
       "GasBroker",
-      [324, PRICE_ORACLE_ADDRESS],
+      [PRICE_ORACLE_ADDRESS],
       { wallet, silent: true }
     );
 
@@ -57,25 +59,50 @@ describe('GasBrokerTest', function () {
     console.log({ permitMessageSignature });
 
 
-    const rewardMessageSignature = await signer._signTypedData(reward.domain, reward.types, {
+    const rewardMessage = {
       permitHash: ethers.utils.keccak256(permitMessageSignature),
       value: REWARD_VALUE
-    });
+    };
+    const rewardMessageSignature = await signer._signTypedData(reward.domain, reward.types, rewardMessage);
 
-    const sig = ethers.utils.splitSignature(permitMessageSignature);
+    console.log('Reward domain:', reward.domain);
+    console.log('Reward message:', rewardMessage);
+    console.log({ rewardMessageSignature });
 
-    await usdt.connect(wallet).permit(
+
+    const permitSig = ethers.utils.splitSignature(permitMessageSignature);
+    const rewardSig = ethers.utils.splitSignature(rewardMessageSignature);
+
+    console.log(permitSig);
+    console.log(rewardSig);
+
+    const swapParams = [
       message.owner,
-      message.spender,
+      usdt.address,
       message.value,
       message.deadline,
-      sig.v,
-      sig.r,
-      sig.s
-    );
+      REWARD_VALUE,
+      permitSig.v,
+      permitSig.r,
+      permitSig.s,
+      rewardSig.v,
+      rewardSig.r,
+      rewardSig.s,
+      { value: 10n**18n }
+    ]
+    console.log('Swap params:', swapParams);
+    await gasBroker.connect(wallet).swap(...swapParams);
 
     const nonceAfter = await usdt.nonces(signer.address);
     console.log('Nonce after: ', nonceAfter);
+
+    const usdtBalanceAfter = await usdt.balanceOf(signer.address);
+    const ethBalanceAfter = await signer.getBalance();
+
+    console.log({
+      usdtBalanceDiff: (usdtBalanceBefore - usdtBalanceAfter).toString(),
+      ethBalanceAfter: (ethBalanceAfter - ethBalanceBefore).toString()
+    })
 
     // lets change 100 USDC to ETH
   })

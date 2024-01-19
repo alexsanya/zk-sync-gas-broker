@@ -36,7 +36,7 @@ contract GasBroker {
 
   string public constant name = "Gas broker";
   string public constant version = "1";
-  AggregatorV3Interface immutable ethPriceFeed;
+  AggregatorV3Interface public immutable ethPriceFeed;
 
   bytes32 public immutable DOMAIN_SEPARATOR;
 
@@ -89,9 +89,6 @@ contract GasBroker {
       );
       SafeERC20.safeTransferFrom(IERC20(token), signer, address(this), value);
       uint256 ethAmount = getEthAmount(value - reward);
-      // price of 1 ETH in tokens 
-      // 1 ETH = X tokens
-      // Y tokens = 1 ETH * Y/X
       require(msg.value >= ethAmount, "Not enough ETH provided");
       payable(signer).sendValue(ethAmount);
       if (msg.value > ethAmount) {

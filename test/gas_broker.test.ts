@@ -7,7 +7,7 @@ import {
   getReward
 } from './utils';
 
-const PRICE_ORACLE_ADDRESS = "0xE6E839fec88eFc835F66139f0baC35a596D6d8eD";
+const USDC_ETH_PRICE_FEED_ADDRESS = "0x6D41d1dc818112880b40e26BD6FD347E41008eDA";
 const USDT_VALUE = 100n * 10n**6n;
 const REWARD_VALUE = 5n* 10n**5n;
 const TTL = 3600;
@@ -31,7 +31,7 @@ describe('GasBrokerTest', function () {
     //deploy gas broker
     const gasBroker = await deployContract(
       "GasBroker",
-      [PRICE_ORACLE_ADDRESS],
+      [USDC_ETH_PRICE_FEED_ADDRESS],
       { wallet, silent: true }
     );
 
